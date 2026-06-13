@@ -1,0 +1,58 @@
+{
+  "compilerOptions": {
+    /* Language & Environment */
+    "target": "ES2021",
+    "lib": ["ES2021", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "useDefineForClassFields": true,
+
+    /* Module Resolution */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@components/*": ["./src/components/*"],
+      "@screens/*": ["./src/screens/*"],
+      "@store/*": ["./src/store/*"],
+      "@hooks/*": ["./src/hooks/*"],
+      "@lib/*": ["./src/lib/*"],
+      "@styles/*": ["./src/styles/*"],
+      "@types/*": ["./src/types/*"],
+      "@vengaicode/ui": ["../../packages/ui/src"],
+      "@vengaicode/ui/*": ["../../packages/ui/src/*"],
+      "@vengaicode/ai": ["../../packages/ai/src"],
+      "@vengaicode/ai/*": ["../../packages/ai/src/*"],
+      "@vengaicode/utils": ["../../packages/utils/src"],
+      "@vengaicode/utils/*": ["../../packages/utils/src/*"],
+      "@vengaicode/types": ["../../packages/types/src"],
+      "@vengaicode/types/*": ["../../packages/types/src/*"]
+    },
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": false,
+
+    /* Bundler-specific */
+    "moduleDetection": "force",
+    "allowJs": false,
+    "isolatedModules": true,
+    "noEmit": true,
+
+    /* Type Checking — Strict Mode */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noUncheckedIndexedAccess": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* Interop */
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true
+  },
+  "include": ["src", "vite.config.ts", "tailwind.config.ts"],
+  "exclude": ["node_modules", "dist", "src-tauri", "tests"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}
