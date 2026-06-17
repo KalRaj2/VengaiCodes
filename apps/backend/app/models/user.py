@@ -91,9 +91,13 @@ class User(Base):
 
     # ── Basic Info ──
     full_name: str = Column(String(255), nullable=False)
-    username: str = Column(String(50), nullable=False, unique=True, index=True)
-    email: str = Column(String(255), nullable=False, unique=True, index=True)
-    mobile: Optional[str] = Column(String(20), nullable=True, unique=True)
+    # NOTE: index=True intentionally removed from username/email below —
+    # they already have explicit Index() entries in __table_args__ above.
+    # Keeping both caused "index already exists" errors on SQLite, since
+    # SQLAlchemy would try to create the same-named index twice.
+    username: str = Column(String(50), nullable=False)
+    email: str = Column(String(255), nullable=False)
+    mobile: Optional[str] = Column(String(20), nullable=True)
     avatar_url: Optional[str] = Column(String(500), nullable=True)
     bio: Optional[str] = Column(Text, nullable=True)
 

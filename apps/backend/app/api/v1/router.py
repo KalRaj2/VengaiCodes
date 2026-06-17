@@ -29,6 +29,15 @@ api_router.include_router(
     tags=["Projects"],
 )
 
+# ── AI Engine ──
+# /api/v1/ai/status, /api/v1/ai/ask
+from app.api.v1 import ai
+api_router.include_router(
+    ai.router,
+    prefix="/ai",
+    tags=["AI Engine"],
+)
+
 # ───────────────────────────────────────────────
 #  Future routers — uncomment as each module is built
 #  Each module follows the same pattern as auth/projects above

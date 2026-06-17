@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     TIGER_STAMP_CRYPTOGRAPHIC_KEY: str = "changeme_tiger_stamp_key"
 
     # ───────────────────────────────────────────
-    #  Database — PostgreSQL (Supabase)
+    #  Database — PostgreSQL (Supabase) or SQLite (local dev)
     # ───────────────────────────────────────────
     DATABASE_URL: str = (
         "postgresql+asyncpg://vengaicode_user:vengaicode_pass_dev"
@@ -103,11 +103,8 @@ class Settings(BaseSettings):
 
     # AI Models by use case
     OLLAMA_CODE_MODEL: str = "deepseek-coder"
-    # Best open-source code model — beats GPT-4 on coding benchmarks
     OLLAMA_CHAT_MODEL: str = "qwen2.5-coder"
-    # Best for conversation + code questions
     OLLAMA_SMALL_MODEL: str = "phi3"
-    # Runs on 4GB RAM — for lower spec machines
 
     # Groq API — Cloud Fallback (FREE tier: 14,400 req/day)
     GROQ_API_KEY: str = ""
@@ -118,16 +115,12 @@ class Settings(BaseSettings):
 
     # AI Performance Thresholds
     AI_SLOW_RESPONSE_THRESHOLD_MS: int = 3000
-    # Auto-switch if local AI takes > 3 seconds
     AI_CRITICAL_RESPONSE_THRESHOLD_MS: int = 10000
-    # Ask user if local AI takes > 10 seconds
 
     # AI Generation Settings
     AI_MAX_TOKENS: int = 4096
     AI_TEMPERATURE: float = 0.1
-    # Low temperature = more precise, deterministic code
     AI_CODE_TEMPERATURE: float = 0.05
-    # Even lower for code — maximum precision
 
     # ───────────────────────────────────────────
     #  File Storage — Cloudflare R2
@@ -136,7 +129,6 @@ class Settings(BaseSettings):
     CLOUDFLARE_R2_SECRET: str = ""
     CLOUDFLARE_R2_BUCKET: str = "vengaicode-files"
     CLOUDFLARE_R2_ENDPOINT: str = ""
-    # Format: https://<account_id>.r2.cloudflarestorage.com
 
     # ───────────────────────────────────────────
     #  Payment — Razorpay
@@ -148,11 +140,8 @@ class Settings(BaseSettings):
 
     # Commission Rates
     COMMISSION_MARKETPLACE_PERCENT: float = 10.0
-    # 10% on VengaiCode marketplace sales
     COMMISSION_EXTERNAL_PERCENT: float = 25.0
-    # 25% on external platform sales
     COMMISSION_TEMPLATE_PERCENT: float = 10.0
-    # 10% on community template sales
 
     # ───────────────────────────────────────────
     #  Identity Verification — Digio
@@ -191,7 +180,7 @@ class Settings(BaseSettings):
     #  Rate Limiting
     # ───────────────────────────────────────────
     RATE_LIMIT_CALLS: int = 100
-    RATE_LIMIT_PERIOD: int = 60  # seconds
+    RATE_LIMIT_PERIOD: int = 60
     RATE_LIMIT_AUTH_CALLS: int = 10
     RATE_LIMIT_AUTH_PERIOD: int = 60
     RATE_LIMIT_AI_CALLS: int = 20
@@ -201,12 +190,12 @@ class Settings(BaseSettings):
     #  CORS — Allowed Origins
     # ───────────────────────────────────────────
     ALLOWED_ORIGINS_STR: str = (
-        "http://localhost:1420,"      # Tauri desktop dev
-        "http://localhost:3000,"      # Next.js marketplace dev
-        "http://localhost:3002,"      # Admin panel dev
-        "tauri://localhost,"          # Tauri production
-        "https://vengaicode.com,"     # Production marketplace
-        "https://admin.vengaicode.com"  # Production admin
+        "http://localhost:1420,"
+        "http://localhost:3000,"
+        "http://localhost:3002,"
+        "tauri://localhost,"
+        "https://vengaicode.com,"
+        "https://admin.vengaicode.com"
     )
 
     @property
@@ -219,7 +208,7 @@ class Settings(BaseSettings):
     PRICING_FREE_PROJECTS: int = 1
     PRICING_CREATOR_PROJECTS: int = 5
     PRICING_PROFESSIONAL_PROJECTS: int = 15
-    PRICING_STUDIO_PROJECTS: int = -1  # Unlimited — -1 means no limit
+    PRICING_STUDIO_PROJECTS: int = -1
 
     PRICING_CREATOR_PRICE_INR: float = 1999.0
     PRICING_PROFESSIONAL_PRICE_INR: float = 3499.0
@@ -277,12 +266,14 @@ class Settings(BaseSettings):
 
     @property
     def database_url_async(self) -> str:
-        """Return async PostgreSQL URL for SQLAlchemy."""
+        """Return async-compatible DB URL for SQLAlchemy (Postgres or SQLite)."""
         url = self.DATABASE_URL
         if url.startswith("postgresql://"):
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
-        if url.startswith("postgres://"):
+        elif url.startswith("postgres://"):
             url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif url.startswith("sqlite://"):
+            url = url.replace("sqlite://", "sqlite+aiosqlite://", 1)
         return url
 
 

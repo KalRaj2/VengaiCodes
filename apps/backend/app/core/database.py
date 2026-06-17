@@ -19,15 +19,25 @@ Base = declarative_base()
 
 # ───────────────────────────────────────────────
 #  Async Engine
+#  SQLite (local dev) doesn't support connection pool settings
+#  that Postgres/MySQL use, so we branch on the URL scheme.
 # ───────────────────────────────────────────────
-engine = create_async_engine(
-    settings.database_url_async,
-    echo=settings.DATABASE_ECHO,
-    pool_size=settings.DATABASE_POOL_SIZE,
-    max_overflow=settings.DATABASE_MAX_OVERFLOW,
-    pool_timeout=settings.DATABASE_POOL_TIMEOUT,
-    pool_pre_ping=True,  # Verify connections before using — avoids stale connections
-)
+_is_sqlite = settings.database_url_async.startswith("sqlite")
+
+if _is_sqlite:
+    engine = create_async_engine(
+        settings.database_url_async,
+        echo=settings.DATABASE_ECHO,
+    )
+else:
+    engine = create_async_engine(
+        settings.database_url_async,
+        echo=settings.DATABASE_ECHO,
+        pool_size=settings.DATABASE_POOL_SIZE,
+        max_overflow=settings.DATABASE_MAX_OVERFLOW,
+        pool_timeout=settings.DATABASE_POOL_TIMEOUT,
+        pool_pre_ping=True,
+    )
 
 # ───────────────────────────────────────────────
 #  Session Factory
