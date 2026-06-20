@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
 
 from app.config import settings
 from app.core.database import Base, engine
@@ -55,7 +56,6 @@ logger = logging.getLogger("vengaicode")
 async def lifespan(app: FastAPI):
     """
     Application startup and shutdown lifecycle manager.
-    Runs startup tasks before serving requests, shutdown tasks after.
     """
     # ── Startup ──
     logger.info("🐯 VengaiCode Backend Starting...")
@@ -65,32 +65,36 @@ async def lifespan(app: FastAPI):
 
     # ── Database Initialization ──
     try:
+        # Step 1 — Create all tables (skips existing tables safely)
         async with engine.begin() as conn:
-            # Step 1 — Create all tables (skips existing tables)
             await conn.run_sync(
                 lambda c: Base.metadata.create_all(c, checkfirst=True)
             )
-            # Step 2 — Create indexes individually with checkfirst
-            # This prevents "index already exists" errors when a column
-            # has both index=True AND an explicit Index() in __table_args__
+
+        # Step 2 — Create indexes using raw SQL with IF NOT EXISTS
+        # This is the only reliable fix for SQLite + aiosqlite + SQLAlchemy 2.0
+        # idx.create(checkfirst=True) does NOT suppress the error on SQLite
+        # but native SQLite "CREATE INDEX IF NOT EXISTS" does.
+        async with engine.begin() as conn:
             for table in Base.metadata.tables.values():
                 for index in table.indexes:
+                    cols = ", ".join(col.name for col in index.columns)
+                    unique = "UNIQUE " if index.unique else ""
+                    sql = (
+                        f"CREATE {unique}INDEX IF NOT EXISTS "
+                        f"{index.name} ON {table.name} ({cols})"
+                    )
                     try:
-                        await conn.run_sync(
-                            lambda c, idx=index: idx.create(c, checkfirst=True)
-                        )
+                        await conn.execute(text(sql))
                     except Exception as idx_err:
-                        # Log at debug level only — duplicate indexes are
-                        # expected during development and are harmless
-                        logger.debug(
-                            f"Skipping index {index.name}: {idx_err}"
-                        )
+                        logger.debug(f"Skipping index {index.name}: {idx_err}")
+
         logger.info("✅ Database tables created/verified")
     except Exception as e:
         logger.error(f"❌ Database initialization failed: {e}")
         raise
 
-    # ── Redis Connection (optional — gracefully skipped if unavailable) ──
+    # ── Redis Connection (optional) ──
     try:
         from app.core.redis import get_redis
         redis = await get_redis()
@@ -99,7 +103,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"⚠️  Redis connection failed: {e} — caching disabled")
 
-    # ── AI Backend Check (optional — Groq fallback if Ollama unavailable) ──
+    # ── AI Backend Check (optional) ──
     try:
         from app.ai.orchestrator import check_ai_availability
         ai_status = await check_ai_availability()
@@ -123,9 +127,8 @@ async def lifespan(app: FastAPI):
         logger.warning(f"⚠️  AI status check failed: {e}")
 
     logger.info("🐯 VengaiCode Backend Ready!")
-    logger.info(f"   Docs: http://localhost:8000/docs")
 
-    yield  # ← Application runs here, serving requests
+    yield  # ← Application runs here
 
     # ── Shutdown ──
     logger.info("🐯 VengaiCode Backend Shutting Down...")
