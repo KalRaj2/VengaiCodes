@@ -326,7 +326,7 @@ class OTPRecord(Base):
         primary_key=True,
         default=lambda: str(uuid.uuid4()),
     )
-    target: str = Column(String(255), nullable=False, index=True)
+    target: str = Column(String(255), nullable=False)
     # Email address or mobile number
     otp_type: str = Column(String(20), nullable=False)
     # "email" or "mobile"
@@ -380,14 +380,13 @@ class AdminAction(Base):
         primary_key=True,
         default=lambda: str(uuid.uuid4()),
     )
-    admin_id: str = Column(String(36), nullable=False, index=True)
+    admin_id: str = Column(String(36), nullable=False)
     target_user_id: str = Column(
         String(36),
         ForeignKey("users.id"),
-        nullable=False,
-        index=True,
+        nullable=False,        
     )
-    action_type: str = Column(String(100), nullable=False, index=True)
+    action_type: str = Column(String(100), nullable=False)
     # "extend_free", "restrict", "ban", "warn", "upgrade_tier",
     # "vip_grant", "vip_revoke", "suspend", "unsuspend"
     action_details: dict = Column(JSON, default=dict, nullable=False)
