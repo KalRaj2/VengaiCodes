@@ -94,28 +94,40 @@ def otp_resend_lock_key(target: str, purpose: str) -> str:
 async def is_otp_resend_locked(target: str, purpose: str) -> bool:
     """Check if user must wait before requesting another OTP."""
     key = otp_resend_lock_key(target, purpose)
-    return bool(await redis_client.exists(key))
+    try:
+        return bool(await redis_client.exists(key))
+    except Exception:
+        return False  # Redis down — allow resend
 
 
 async def set_otp_resend_lock(target: str, purpose: str, seconds: int = 60) -> None:
     """Lock OTP resend for N seconds (default 60s between resends)."""
     key = otp_resend_lock_key(target, purpose)
-    await redis_client.set(key, "1", ex=seconds)
+    try:
+        await redis_client.set(key, "1", ex=seconds)
+    except Exception:
+        pass  # Redis down — skip lock, no harm
 
 
 async def increment_otp_attempts(target: str, purpose: str, ttl_seconds: int) -> int:
     """Increment and return OTP verification attempt count."""
     key = otp_attempts_key(target, purpose)
-    attempts = await redis_client.incr(key)
-    if attempts == 1:
-        await redis_client.expire(key, ttl_seconds)
-    return attempts
+    try:
+        attempts = await redis_client.incr(key)
+        if attempts == 1:
+            await redis_client.expire(key, ttl_seconds)
+        return attempts
+    except Exception:
+        return 1  # Redis down — treat as first attempt
 
 
 async def reset_otp_attempts(target: str, purpose: str) -> None:
     """Reset OTP attempt counter after successful verification."""
     key = otp_attempts_key(target, purpose)
-    await redis_client.delete(key)
+    try:
+        await redis_client.delete(key)
+    except Exception:
+        pass  # Redis down — nothing to reset
 
 
 # ───────────────────────────────────────────────
