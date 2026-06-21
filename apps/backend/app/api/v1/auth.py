@@ -7,7 +7,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -54,7 +54,8 @@ logger = logging.getLogger("vengaicode.auth")
 
 router = APIRouter()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
+# Points at /auth/token so Swagger's Authorize button works automatically
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -115,6 +116,76 @@ async def get_current_active_user(
 
 
 # ═══════════════════════════════════════════════════════════════
+#  POST /auth/token — Swagger UI OAuth2 compatibility endpoint
+#  Swagger's Authorize button sends username+password as form data.
+#  This endpoint accepts that format, validates credentials, and
+#  returns a token — so Swagger auto-attaches it to all requests.
+# ═══════════════════════════════════════════════════════════════
+@router.post(
+    "/token",
+    summary="Get token (Swagger UI Authorize button)",
+    include_in_schema=True,
+    tags=["Authentication"],
+)
+async def get_token_for_swagger(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    OAuth2 password flow endpoint for Swagger UI's Authorize button.
+
+    Enter your username and password in Swagger's Authorize dialog
+    and all protected endpoints will automatically use the token.
+    This is a convenience endpoint for API testing — the main login
+    endpoint is POST /auth/login (JSON body).
+    """
+    result = await db.execute(
+        select(User).where(
+            or_(
+                User.username == form_data.username,
+                User.email == form_data.username,
+            )
+        )
+    )
+    user = result.scalar_one_or_none()
+
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if user.status == UserStatus.PENDING_VERIFICATION:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please verify your email before logging in.",
+        )
+
+    if user.status in (UserStatus.BANNED, UserStatus.ACCOUNT_SUSPENDED):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been restricted. Contact support@vengaicode.com",
+        )
+
+    access_token, _, expires_in = create_token_pair(
+        user_id=user.id,
+        username=user.username,
+        email=user.email,
+        tier=user.tier.value if hasattr(user.tier, "value") else user.tier,
+    )
+
+    user.last_login = datetime.now(timezone.utc)
+    await db.commit()
+
+    # Must return exactly this shape for OAuth2PasswordBearer to work
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+    }
+
+
+# ═══════════════════════════════════════════════════════════════
 #  POST /auth/signup
 # ═══════════════════════════════════════════════════════════════
 @router.post(
@@ -131,7 +202,6 @@ async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)):
     An OTP is sent to the user's email for verification.
     User must verify email (and later mobile) before full access.
     """
-    # Check for existing email, username, or mobile
     result = await db.execute(
         select(User).where(
             or_(
@@ -155,7 +225,6 @@ async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)):
             detail=f"An account with this {field} already exists.",
         )
 
-    # Create user — pending verification
     new_user = User(
         full_name=payload.full_name,
         username=payload.username,
@@ -172,16 +241,13 @@ async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(new_user)
 
-    # Send OTP to email for verification
     try:
         plain_otp, _ = await create_otp_record(
             db, target=new_user.email, otp_type="email",
             purpose="signup", user_id=new_user.id,
         )
-        # TODO: send via Resend email service once built
         print(f"[DEV] Signup OTP for {new_user.email}: {plain_otp}", flush=True)
     except ValueError as e:
-        # Resend rate-limited — shouldn't happen on fresh signup
         logger.warning(f"OTP creation rate-limited for new user: {e}")
 
     return SignupResponse(
@@ -213,20 +279,17 @@ async def send_otp(payload: SendOTPRequest, db: AsyncSession = Depends(get_db)):
     """
     target = payload.target.strip()
 
-    # Validate target format based on type
     if payload.otp_type == "mobile":
         try:
             target = validate_indian_mobile(target)
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
 
-    # For login/password_reset, the target must belong to an existing user
     if payload.purpose in ("login", "password_reset", "licence_recovery"):
         lookup_field = User.email if payload.otp_type == "email" else User.mobile
         result = await db.execute(select(User).where(lookup_field == target))
         user = result.scalar_one_or_none()
         if user is None:
-            # Don't reveal whether account exists — generic message
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="If an account exists with these details, an OTP has been sent.",
@@ -243,7 +306,6 @@ async def send_otp(payload: SendOTPRequest, db: AsyncSession = Depends(get_db)):
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
 
-    # Deliver OTP
     if payload.otp_type == "mobile":
         try:
             await send_otp_sms(target, plain_otp)
@@ -254,12 +316,11 @@ async def send_otp(payload: SendOTPRequest, db: AsyncSession = Depends(get_db)):
                 detail="Failed to send OTP. Please try again shortly.",
             )
     else:
-        # TODO: send via Resend email service once built
         print(f"[DEV] OTP for {target}: {plain_otp}", flush=True)
 
     mask_fn = mask_email if payload.otp_type == "email" else mask_mobile
     return SendOTPResponse(
-        message=f"OTP sent successfully! 🐯",
+        message="OTP sent successfully! 🐯",
         otp_sent_to=mask_fn(target),
         expires_in_minutes=settings.MSG91_OTP_EXPIRE_MINUTES,
         resend_after_seconds=60,
@@ -296,7 +357,6 @@ async def verify_otp(payload: VerifyOTPRequest, db: AsyncSession = Depends(get_d
     if not success:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message)
 
-    # Find associated user
     lookup_field = User.email if payload.otp_type == "email" else User.mobile
     result = await db.execute(select(User).where(lookup_field == target))
     user = result.scalar_one_or_none()
@@ -306,7 +366,6 @@ async def verify_otp(payload: VerifyOTPRequest, db: AsyncSession = Depends(get_d
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found."
         )
 
-    # Update verification status based on purpose + otp_type
     if payload.purpose in ("signup", "verify"):
         if payload.otp_type == "email" and not user.email_verified:
             user.email_verified = True
@@ -318,7 +377,6 @@ async def verify_otp(payload: VerifyOTPRequest, db: AsyncSession = Depends(get_d
             if user.email_verified:
                 user.verification_status = VerificationStatus.MOBILE_VERIFIED
 
-        # Activate account once email is verified (mobile can follow later)
         if user.email_verified and user.status == UserStatus.PENDING_VERIFICATION:
             user.status = UserStatus.ACTIVE
 
@@ -344,7 +402,6 @@ async def verify_otp(payload: VerifyOTPRequest, db: AsyncSession = Depends(get_d
         )
 
     if payload.purpose == "login":
-        # Completes 2FA login flow
         access_token, refresh_token, expires_in = create_token_pair(
             user_id=user.id,
             username=user.username,
@@ -364,8 +421,6 @@ async def verify_otp(payload: VerifyOTPRequest, db: AsyncSession = Depends(get_d
             user=UserResponse.from_db(user),
         )
 
-    # password_reset / licence_recovery — just confirms OTP is valid;
-    # actual password reset happens in /auth/reset-password
     return VerifyOTPResponse(message=message, verified=True)
 
 
@@ -406,7 +461,6 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
     if user is None or user.deleted_at is not None:
         raise generic_error
 
-    # Check lockout
     if user.lockout_until and user.lockout_until > datetime.now(timezone.utc):
         minutes_left = int((user.lockout_until - datetime.now(timezone.utc)).total_seconds() / 60) + 1
         raise HTTPException(
@@ -435,7 +489,6 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
         await db.commit()
         raise generic_error
 
-    # Check account status
     if user.status == UserStatus.PENDING_VERIFICATION:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -451,7 +504,6 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
             ),
         )
 
-    # Success — reset failed attempts
     user.failed_login_attempts = 0
     user.lockout_until = None
     user.last_login = datetime.now(timezone.utc)
@@ -557,10 +609,8 @@ async def forgot_password(
             db, target=user.email, otp_type="email",
             purpose="password_reset", user_id=user.id,
         )
-        # TODO: send via Resend email service once built
         print(f"[DEV] Password reset OTP for {user.email}: {plain_otp}", flush=True)
     except ValueError:
-        # Already rate-limited — still return generic success
         pass
 
     return generic_response
@@ -645,6 +695,6 @@ async def logout(
             )
             await blocklist_token(token, ttl_seconds=ttl)
         except JWTError:
-            pass  # Already invalid — nothing to blocklist
+            pass
 
     return LogoutResponse()
