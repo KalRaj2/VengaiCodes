@@ -4,7 +4,7 @@
 # ═══════════════════════════════════════════════════════════════
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum as PyEnum
 from typing import List, Optional
 
@@ -348,7 +348,11 @@ class OTPRecord(Base):
 
     def is_expired(self) -> bool:
         from datetime import timezone
-        return datetime.now(timezone.utc) > self.expires_at
+        expires = self.expires_at
+        if expires.tzinfo is None:
+            # SQLite stores timezone-naive datetimes — treat as UTC
+            expires = expires.replace(tzinfo=timezone.utc)
+        return datetime.now(timezone.utc) > expires
 
     def is_exhausted(self) -> bool:
         return self.attempts >= self.max_attempts

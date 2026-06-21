@@ -179,7 +179,7 @@ async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)):
             purpose="signup", user_id=new_user.id,
         )
         # TODO: send via Resend email service once built
-        logger.info(f"[DEV] Signup OTP for {new_user.email}: {plain_otp}")
+        print(f"[DEV] Signup OTP for {new_user.email}: {plain_otp}", flush=True)
     except ValueError as e:
         # Resend rate-limited — shouldn't happen on fresh signup
         logger.warning(f"OTP creation rate-limited for new user: {e}")
@@ -255,7 +255,7 @@ async def send_otp(payload: SendOTPRequest, db: AsyncSession = Depends(get_db)):
             )
     else:
         # TODO: send via Resend email service once built
-        logger.info(f"[DEV] OTP for {target}: {plain_otp}")
+        print(f"[DEV] OTP for {target}: {plain_otp}", flush=True)
 
     mask_fn = mask_email if payload.otp_type == "email" else mask_mobile
     return SendOTPResponse(
@@ -558,7 +558,7 @@ async def forgot_password(
             purpose="password_reset", user_id=user.id,
         )
         # TODO: send via Resend email service once built
-        logger.info(f"[DEV] Password reset OTP for {user.email}: {plain_otp}")
+        print(f"[DEV] Password reset OTP for {user.email}: {plain_otp}", flush=True)
     except ValueError:
         # Already rate-limited — still return generic success
         pass
