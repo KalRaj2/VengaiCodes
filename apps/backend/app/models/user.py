@@ -237,7 +237,7 @@ class User(Base):
         cascade="all, delete-orphan",
         lazy="dynamic",
     )
-    licences = relationship(
+    """licences = relationship(
         "Licence",
         back_populates="user",
         cascade="all, delete-orphan",
@@ -259,7 +259,7 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
         lazy="dynamic",
-    )
+    )"""
 
     # ── Helper Methods ──
     def can_create_project(self) -> bool:
