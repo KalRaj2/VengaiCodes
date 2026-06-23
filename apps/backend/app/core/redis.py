@@ -161,14 +161,18 @@ async def rate_limit_check(
 # ───────────────────────────────────────────────
 #  Session Token Blocklist (for logout)
 # ───────────────────────────────────────────────
-async def blocklist_token(token_jti: str, ttl_seconds: int) -> None:
-    """Add a token to the blocklist (used on logout) until it would expire anyway."""
-    await redis_client.set(f"blocklist:{token_jti}", "1", ex=ttl_seconds)
+async def blocklist_token(token: str, ttl_seconds: int) -> None:
+    try:
+        await redis_client.set(f"blocklist:{token}", "1", ex=ttl_seconds)
+    except Exception:
+        pass  # Redis down — skip blocklisting, token expires naturally
 
 
 async def is_token_blocklisted(token_jti: str) -> bool:
-    """Check if a token has been blocklisted (logged out)."""
-    return bool(await redis_client.exists(f"blocklist:{token_jti}"))
+    try:
+        return bool(await redis_client.exists(f"blocklist:{token_jti}"))
+    except Exception:
+        return False  # Redis down — treat token as valid, fail open
 
 
 # ───────────────────────────────────────────────
