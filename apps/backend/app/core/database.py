@@ -37,6 +37,7 @@ else:
         max_overflow=settings.DATABASE_MAX_OVERFLOW,
         pool_timeout=settings.DATABASE_POOL_TIMEOUT,
         pool_pre_ping=True,
+        connect_args={"ssl": "require"},
     )
 
 # ───────────────────────────────────────────────
