@@ -55,42 +55,53 @@ export default function App() {
     if (savedTheme) {
       dispatch(setTheme(savedTheme));
     } else {
-      // Detect system preference
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       dispatch(setTheme(prefersDark ? "dark" : "light"));
     }
   }, []);
 
   return (
-    <Routes>
-      {/* Public auth routes */}
-      <Route path="/login" element={<AuthRoute><LoginScreen /></AuthRoute>} />
-      <Route path="/signup" element={<AuthRoute><SignupScreen /></AuthRoute>} />
-      <Route path="/otp" element={<AuthRoute><OTPScreen /></AuthRoute>} />
-      <Route path="/forgot-password" element={<AuthRoute><ForgotPasswordScreen /></AuthRoute>} />
+    <div
+      style={{
+        width: "100vw",
+        height: "100vh",
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: "var(--color-background)",
+        color: "var(--color-text-primary)",
+      }}
+    >
+      <Routes>
+        {/* Public auth routes */}
+        <Route path="/login" element={<AuthRoute><LoginScreen /></AuthRoute>} />
+        <Route path="/signup" element={<AuthRoute><SignupScreen /></AuthRoute>} />
+        <Route path="/otp" element={<AuthRoute><OTPScreen /></AuthRoute>} />
+        <Route path="/forgot-password" element={<AuthRoute><ForgotPasswordScreen /></AuthRoute>} />
 
-      {/* First launch onboarding */}
-      <Route path="/onboarding" element={
-        <ProtectedRoute>
-          {isFirstLaunch ? <OnboardingScreen /> : <Navigate to="/home" replace />}
-        </ProtectedRoute>
-      } />
+        {/* First launch onboarding */}
+        <Route path="/onboarding" element={
+          <ProtectedRoute>
+            {isFirstLaunch ? <OnboardingScreen /> : <Navigate to="/home" replace />}
+          </ProtectedRoute>
+        } />
 
-      {/* Protected app routes with main layout */}
-      <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-        <Route index element={<Navigate to="/home" replace />} />
-        <Route path="home" element={<HomeScreen />} />
-        <Route path="project/:id/wizard" element={<WizardScreen />} />
-        <Route path="project/:id/uiux" element={<UIUXScreen />} />
-        <Route path="project/:id/architecture" element={<ArchitectureScreen />} />
-        <Route path="project/:id/codegen" element={<CodeGenScreen />} />
-        <Route path="project/:id/testing" element={<TestingScreen />} />
-        <Route path="project/:id/export" element={<ExportScreen />} />
-        <Route path="settings" element={<SettingsScreen />} />
-      </Route>
+        {/* Protected app routes with main layout */}
+        <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+          <Route index element={<Navigate to="/home" replace />} />
+          <Route path="home" element={<HomeScreen />} />
+          <Route path="project/:id/wizard" element={<WizardScreen />} />
+          <Route path="project/:id/uiux" element={<UIUXScreen />} />
+          <Route path="project/:id/architecture" element={<ArchitectureScreen />} />
+          <Route path="project/:id/codegen" element={<CodeGenScreen />} />
+          <Route path="project/:id/testing" element={<TestingScreen />} />
+          <Route path="project/:id/export" element={<ExportScreen />} />
+          <Route path="settings" element={<SettingsScreen />} />
+        </Route>
 
-      {/* Catch all */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
+        {/* Catch all */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </div>
   );
 }
