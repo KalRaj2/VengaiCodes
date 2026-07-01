@@ -236,7 +236,7 @@ export default function WizardScreen() {
                 Understanding score: {Math.round(understandingScore)}% — Ready to generate requirements!
               </p>
               <button
-                onClick={() => toast.success("Requirements generation coming in Sprint 3! 🐯")}
+                onClick={() => navigate(`/project/${projectId}/requirements`)}
                 className="px-6 py-3 rounded-xl bg-[var(--color-primary)] text-white font-semibold hover:bg-[var(--color-primary-hover)] transition-colors"
               >
                 Generate Requirements Document →
