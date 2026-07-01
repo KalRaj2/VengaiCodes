@@ -11,6 +11,7 @@ import OTPScreen from "@/screens/auth/OTPScreen";
 import ForgotPasswordScreen from "@/screens/auth/ForgotPasswordScreen";
 import HomeScreen from "@/screens/home/HomeScreen";
 import WizardScreen from "@/screens/wizard/WizardScreen";
+import RequirementsScreen from "@/screens/requirements/RequirementsScreen";
 import UIUXScreen from "@/screens/uiux/UIUXScreen";
 import ArchitectureScreen from "@/screens/architecture/ArchitectureScreen";
 import CodeGenScreen from "@/screens/codegen/CodeGenScreen";
@@ -91,6 +92,7 @@ export default function App() {
           <Route index element={<Navigate to="/home" replace />} />
           <Route path="home" element={<HomeScreen />} />
           <Route path="project/:id/wizard" element={<WizardScreen />} />
+        <Route path="project/:id/requirements" element={<RequirementsScreen />} />
           <Route path="project/:id/uiux" element={<UIUXScreen />} />
           <Route path="project/:id/architecture" element={<ArchitectureScreen />} />
           <Route path="project/:id/codegen" element={<CodeGenScreen />} />
