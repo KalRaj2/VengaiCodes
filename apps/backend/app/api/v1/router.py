@@ -129,3 +129,11 @@ api_router.include_router(
     prefix="/uiux",
     tags=["UI/UX Design"],
 )
+
+# ── Notifications ──
+from app.api.v1 import notifications
+api_router.include_router(
+    notifications.router,
+    prefix="/notifications",
+    tags=["Notifications"],
+)
