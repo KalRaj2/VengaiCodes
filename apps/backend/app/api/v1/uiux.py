@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.ai.orchestrator import AIError, generate_text
 from app.api.v1.auth import get_current_active_user
 from app.core.database import get_db
-from app.models.project import Project
+from app.models.project import Project, SDLCPhase
 from app.models.user import User
 
 logger = logging.getLogger("vengaicode.uiux")
@@ -235,7 +235,7 @@ async def approve_uiux(
             phases.append("uiux")
         project.phases_completed = phases
         project.progress_percent = project.get_progress_percent()
-        project.current_phase = "architecture"
+        project.current_phase = SDLCPhase.ARCHITECTURE
 
     await db.commit()
 

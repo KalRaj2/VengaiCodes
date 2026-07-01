@@ -46,6 +46,9 @@ export default function WizardScreen() {
           setMessages(data.conversation);
           setCurrentLayer(data.current_layer);
           setUnderstandingScore(data.understanding_score);
+          if (data.understanding_score >= 100) {
+            setIsComplete(true);
+          }
         } else {
           // Start the conversation with Baby Tiger's opening
           const opening: Message = {
