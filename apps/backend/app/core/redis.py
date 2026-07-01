@@ -153,7 +153,7 @@ async def rate_limit_check(
 
         return True, max_calls - current
     except Exception as e:
-        logger.warning(f"Rate limit check failed for {identifier}: {e}")
+        logger.debug(f"Rate limit check failed for {identifier}: {e}")
         # Fail open — don't block requests if Redis is down
         return True, max_calls
 
