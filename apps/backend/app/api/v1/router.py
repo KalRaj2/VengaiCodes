@@ -153,3 +153,11 @@ api_router.include_router(
     prefix="/codegen",
     tags=["Code Generation"],
 )
+
+# ── Export ──
+from app.api.v1 import export
+api_router.include_router(
+    export.router,
+    prefix="/export",
+    tags=["Export"],
+)
