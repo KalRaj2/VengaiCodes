@@ -226,8 +226,10 @@ async def approve_uiux(
             detail="No UI/UX design to approve.",
         )
 
-    project.uiux_data["user_approved"] = payload.approved
-    project.uiux_data["approved_at"] = datetime.now(timezone.utc).isoformat()
+    uiux_data = dict(project.uiux_data)
+    uiux_data["user_approved"] = payload.approved
+    uiux_data["approved_at"] = datetime.now(timezone.utc).isoformat()
+    project.uiux_data = uiux_data
 
     if payload.approved:
         phases = project.phases_completed or []
