@@ -1,13 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Download, Loader2, PartyPopper, FileText,
-  Code2, TestTube2, Palette, Layers, CheckCircle2
+  Code2, TestTube2, Palette, Layers, CheckCircle2, Package,
+  AlertCircle, ExternalLink
 } from "lucide-react";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/api";
 import BabyTiger from "@/components/baby-tiger/BabyTiger";
+
+type BuildStatus = "idle" | "queued" | "in_progress" | "completed" | "failed";
 
 interface ProjectSummary {
   name: string;
