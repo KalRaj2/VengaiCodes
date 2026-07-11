@@ -108,11 +108,29 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: build
-        run: pnpm install
+        shell: bash
+        run: |
+          pnpm install
+      - name: Verify frontend installation
+        working-directory: build
+        shell: bash
+        run: |
+          echo "Current directory:"
+          pwd
+          echo "Files:"
+          ls -la
+          echo "Checking node_modules..."
+          test -d node_modules || (echo "node_modules not found" && exit 1)
+          echo "Checking Vite..."
+          test -f node_modules/.bin/vite || (echo "Vite not installed" && exit 1)
 
+          echo "Vite version:"
+          pnpm exec vite --version
       - name: Build Windows installer
         working-directory: build
-        run: cargo tauri build
+        shell: bash
+        run: |
+          cargo tauri build
 
       - name: Upload MSI artifact
         uses: actions/upload-artifact@v4
