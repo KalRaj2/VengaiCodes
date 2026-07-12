@@ -122,6 +122,7 @@ jobs:
 
           echo "Vite version:"
           npx vite --version
+      
       - name: Build Windows installer
         working-directory: build
         shell: bash
