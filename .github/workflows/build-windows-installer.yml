@@ -61,28 +61,17 @@ jobs:
           echo "Fetched project_files.json"
           cat project_files.json | head -c 500
       
+      - name: Show all generated file paths
+        shell: bash
+        run: |
+          grep -o '"path":"[^"]*"' project_files.json    
+      
       - name: Debug project files
         shell: bash
         run: |
-          python - <<'PY'
-          import json
-
-          with open("project_files.json", encoding="utf-8") as f:
-          data = json.load(f)
-
-          files = data.get("files", [])
-
-          print("=" * 60)
-          print("FILES RECEIVED FROM BACKEND")
-          print("=" * 60)
-          print(f"Total files: {len(files)}")
-          print()
-
-          for file in files:
-          print(file.get("path"))
-
-          print("=" * 60)
-          PY
+          echo "==================== FILE PATHS ===================="
+          grep -o '"path":"[^"]*"' project_files.json
+            echo "==================================================="
 
       - name: Copy Tauri template into build directory
         shell: bash
