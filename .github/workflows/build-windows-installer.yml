@@ -66,7 +66,7 @@ jobs:
         run: |
           grep -o '"path":"[^"]*"' project_files.json    
       
-          - name: Debug project files
+      - name: Debug project files
         shell: bash
         run: |
           echo "==================== FILE PATHS ===================="
