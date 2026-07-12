@@ -61,7 +61,12 @@ jobs:
           echo "Fetched project_files.json"
           cat project_files.json | head -c 500
       
-      - name: Debug project files
+      - name: Show all generated file paths
+        shell: bash
+        run: |
+          grep -o '"path":"[^"]*"' project_files.json    
+      
+          - name: Debug project files
         shell: bash
         run: |
           echo "==================== FILE PATHS ===================="
