@@ -179,7 +179,7 @@ async def generate_code(
         print("===== GENERATED FILES =====")
         for f in parsed.get("files", []):
             print(f["path"])
-            print("===========================")
+        print("===========================")
     except AIError as e:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
     except (json.JSONDecodeError, KeyError, IndexError) as e:
