@@ -105,21 +105,22 @@ Generate a JSON object with EXACTLY these fields (no markdown, no extra text, ju
 Rules:
 
 Frontend (React + Vite):
-- Generate src/main.jsx as the Vite entry point that renders the React app.
-- Generate src/App.jsx as the root component.
-- Generate src/index.css with basic global styles.
-- Generate one React component per screen inside src/screens/.
-- App.jsx must import the screen components and display them.
+- Generate a complete Vite React application.
+- Generate frontend/main.jsx as the application entry point.
+- Generate frontend/App.jsx as the root React component.
+- Generate frontend/index.css with basic global styles.
+- Generate one React component per screen inside frontend/screens/.
+- App.jsx must import and render the generated screen components.
 - main.jsx must import React, ReactDOM, App.jsx and index.css.
 
 Backend:
 - Generate one SQLAlchemy model per database table.
-- Generate one FastAPI routes file covering all API endpoints.
-- Use placeholder/mock implementations only.
+- Generate one FastAPI routes file covering all API endpoints using placeholder/mock implementations.
 
 General:
 - Keep each file concise (20–60 lines).
 - All code must be syntactically valid.
+- Use realistic import statements.
 - Return ONLY valid JSON.
 
 Respond with ONLY the JSON object, nothing else."""
@@ -175,6 +176,10 @@ async def generate_code(
         prompt = build_codegen_prompt(project.name, architecture, uiux)
         ai_result = await generate_text(prompt)
         parsed = parse_ai_json(ai_result["text"])
+        print("===== GENERATED FILES =====")
+        for f in parsed.get("files", []):
+            print(f["path"])
+            print("===========================")
     except AIError as e:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
     except (json.JSONDecodeError, KeyError, IndexError) as e:
