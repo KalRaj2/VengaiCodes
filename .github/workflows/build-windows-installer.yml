@@ -91,20 +91,25 @@ jobs:
 
           files = data.get('files', [])
           written = 0
+          skipped_manifests = 0
 
           for file_entry in files:
               path = file_entry.get('path', '')
               content = file_entry.get('content', '')
 
-              # Only inject frontend files. Backend files are not bundled
-              # in this version (see workflow header comment).
+              # Only inject frontend files
               if not path.startswith('frontend/'):
                   continue
 
-              # Strip the 'frontend/' prefix so frontend/src/main.jsx becomes
-              # src/main.jsx, and frontend/package.json becomes package.json
-              # (which correctly overwrites the template's placeholder).
               relative_path = path[len('frontend/'):]
+
+              # Skip AI-generated package.json — the template's own package.json
+              # is carefully configured for Tauri (has build script, correct deps).
+              # Also skip vite.config.ts and index.html for the same reason.
+              if relative_path in ('package.json', 'vite.config.ts', 'index.html'):
+                  skipped_manifests += 1
+                  continue
+
               target_path = os.path.join('build', relative_path)
               os.makedirs(os.path.dirname(target_path) or '.', exist_ok=True)
 
@@ -113,6 +118,7 @@ jobs:
               written += 1
 
           print(f'Injected {written} frontend files into build/')
+          print(f'Skipped {skipped_manifests} template-conflict files (kept template versions)')
           "
       - name: Debug — show what actually landed in build/src
         working-directory: build
