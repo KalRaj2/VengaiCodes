@@ -88,10 +88,18 @@ export default function ExportScreen() {
     }
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
+  try {
+    await apiClient.post(`/projects/${projectId}/complete`);
     toast.success("Nice work! Your project is saved in Completed 🐯", { duration: 4000 });
     navigate("/home");
-  };
+  } catch (error: any) {
+    // Non-blocking — if this fails the user still gets home, we just log it
+    console.error("Failed to mark complete:", error);
+    toast.success("Returning home 🐯");
+    navigate("/home");
+  }
+};
 
   // ── Windows installer build ──
 
