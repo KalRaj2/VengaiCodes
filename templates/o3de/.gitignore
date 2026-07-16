@@ -1,0 +1,12 @@
+# O3DE generated files
+*.obj
+*.assetinfo
+*.sln
+*.user
+*.userprefs
+*.vs
+*.ds_store
+*.log
+Build/
+Cache/
+Gems/Cache/

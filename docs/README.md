@@ -54,3 +54,4 @@ This verifies the prompt text includes Tailwind requirements. For full AI runs y
 
 - The app is designed to keep heavy build work in cloud CI and Render.
 - The current repo changes are focused on Tailwind staging and making Windows installer builds unique per project.
+- O3DE is now recognized in the AI prompts as a preferred open-source engine for high-end game projects when the architecture indicates game/3D needs.

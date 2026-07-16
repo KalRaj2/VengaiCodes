@@ -70,8 +70,24 @@ def build_codegen_prompt(project_name: str, architecture: dict, uiux: dict) -> s
     screen_names = [s.get("name", "Screen") for s in screens]
     screens_text = "\n".join(f"- {s.get('name')}: {s.get('purpose')}" for s in screens)
     screens_list = ", ".join(screen_names) if screen_names else "Home"
+    frontend_lower = tech_stack.get("frontend", "").lower()
+    use_o3de = "o3de" in frontend_lower or "open 3d engine" in frontend_lower
+    if use_o3de:
+        body_intro = (
+            "Based on this approved architecture, generate a STARTER O3DE project scaffold that actually builds and runs — not isolated fragments, but a coherent Open 3D Engine project with placeholder workspace files, scene setup stubs, script modules, and engine-ready configuration."
+        )
+        game_stack_hint = (
+            "This project uses Open 3D Engine (O3DE). Generate the required O3DE project/workspace files, asset folder structure, and startup scene stub. Do not generate React/Vite files."
+        )
+    else:
+        body_intro = (
+            "Based on this approved architecture, generate a STARTER CODE SKELETON that actually builds and runs — not isolated fragments, but a coherent project with the exact wiring files a Vite + React app needs."
+        )
+        game_stack_hint = (
+            "If the app is a game, favor a modern web 3D engine such as React Three Fiber with Three.js, and generate a lightweight interactive game shell with WebGL content and game-like controls. If the app is not a game, generate a standard React + Tailwind web app."
+        )
 
-    return f"""You are Baby Tiger 🐯, VengaiCode's AI code generation assistant. Based on this approved architecture, generate a STARTER CODE SKELETON that actually builds and runs — not isolated fragments, but a coherent project with the exact wiring files a Vite + React app needs.
+    return f"""You are Baby Tiger 🐯, VengaiCode's AI code generation assistant. {body_intro}
 
 App: {project_name}
 Backend: {tech_stack.get('backend', 'FastAPI + Python')}
@@ -86,6 +102,8 @@ API endpoints:
 
 Screens:
 {screens_text}
+
+{game_stack_hint}
 
 Generate a JSON object with EXACTLY these fields (no markdown, no extra text, just valid JSON):
 {{

@@ -69,3 +69,7 @@ This verifies the prompt text includes Tailwind requirements. For full AI runs y
 ## Additional docs
 
 See `docs/README.md` for the same Tailwind and Windows packaging details in a project documentation page.
+
+## O3DE support
+
+This repo now includes O3DE support hints in the AI architecture and code generation prompts, so high-end open-source game projects can be routed toward Open 3D Engine when appropriate.

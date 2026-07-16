@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.ai.orchestrator import AIError, generate_text
 from app.api.v1.auth import get_current_active_user
 from app.core.database import get_db
-from app.models.project import Project, SDLCPhase
+from app.models.project import Project, SDLCPhase, AppCategory
 from app.models.user import User
 
 logger = logging.getLogger("vengaicode.wizard")
@@ -52,8 +52,8 @@ LAYERS = {
         "prompt_suffix": "Ask ONE question about the 3 most important features they want. Give a brief example to help them think.",
     },
     4: {
-        "label": "Platforms",
-        "prompt_suffix": "Ask ONE question about which platforms they want — Web, Mobile (Android/iOS), Desktop (Windows/Mac), or all of them.",
+        "label": "Platforms / Game Type",
+        "prompt_suffix": "Ask ONE question about which platforms they want — Web, Mobile (Android/iOS), Desktop (Windows/Mac), or all of them. If this app should be a game, also ask what type of game it should be and which device(s) it should target. If they want a high-end open-source game engine, mention Open 3D Engine (O3DE) as an option.",
     },
     5: {
         "label": "Target Users",
@@ -147,6 +147,14 @@ async def wizard_message(
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "layer": payload.current_layer,
     })
+
+    # Detect game intent and mark project category if appropriate
+    user_text = payload.user_message.lower()
+    if project.category != AppCategory.GAME and any(
+        term in user_text
+        for term in ["game", "gameplay", "fps", "rpg", "puzzle", "platformer", "strategy", "simulation", "adventure", "match-3", "o3de", "open 3d engine", "open3dengine"]
+    ):
+        project.category = AppCategory.GAME
 
     # Determine next layer
     next_layer = min(payload.current_layer + 1, 7)

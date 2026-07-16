@@ -13,6 +13,7 @@ import logging
 import re
 import zipfile
 from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -21,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.auth import get_current_active_user
 from app.core.database import get_db
-from app.models.project import Project
+from app.models.project import AppCategory, Project
 from app.models.user import User
 
 logger = logging.getLogger("vengaicode.export")
@@ -33,6 +34,24 @@ def safe_filename(name: str) -> str:
     cleaned = re.sub(r"[^\w\s-]", "", name).strip()
     cleaned = re.sub(r"[\s]+", "_", cleaned)
     return cleaned[:50] or "vengaicode_project"
+
+
+def get_repo_root() -> Path:
+    return Path(__file__).resolve().parents[4]
+
+
+def add_template_folder_to_zip(zip_file: zipfile.ZipFile, template_dir: Path, prefix: str) -> None:
+    for file_path in template_dir.rglob("*"):
+        if file_path.is_file():
+            relative_path = file_path.relative_to(template_dir)
+            zip_path = Path(prefix) / relative_path
+            zip_file.writestr(str(zip_path), file_path.read_text(encoding="utf-8"))
+
+
+def is_o3de_project(project: Project) -> bool:
+    architecture = (project.architecture_data or {}).get("architecture", {})
+    frontend = (architecture.get("tech_stack", {}) or {}).get("frontend", "")
+    return isinstance(frontend, str) and ("o3de" in frontend.lower() or "open 3d engine" in frontend.lower())
 
 
 @router.get(
@@ -103,6 +122,11 @@ async def download_project_zip(
             # Prevent path traversal — strip any leading slashes or ../
             safe_path = path.lstrip("/").replace("..", "")
             zip_file.writestr(safe_path, content)
+
+        if is_o3de_project(project):
+            template_root = get_repo_root() / "templates" / "o3de"
+            if template_root.exists():
+                add_template_folder_to_zip(zip_file, template_root, "o3de_template")
 
     zip_buffer.seek(0)
 

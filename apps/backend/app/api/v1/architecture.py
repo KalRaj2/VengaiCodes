@@ -83,6 +83,8 @@ Platforms: {platforms}
 Screens: {screen_names}
 Complexity hint: {tech_hint}
 
+If the app is a game or needs high-end 3D rendering, favor Open 3D Engine (O3DE) for the tech stack and explain why it fits. If it is not a game, favor simple open-source web or mobile technologies.
+
 Generate a JSON object with EXACTLY these fields (no markdown, no extra text, just valid JSON):
 {{
   "architecture_summary": "2-3 sentences describing the overall technical approach",

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <ProjectName>ProjectName</ProjectName>
+  <Settings>
+    <EngineVersion>Open 3D Engine</EngineVersion>
+    <ProjectType>Game</ProjectType>
+  </Settings>
+</Project>
