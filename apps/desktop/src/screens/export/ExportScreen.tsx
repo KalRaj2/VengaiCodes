@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Download, Loader2, PartyPopper, FileText,
   Code2, TestTube2, Palette, Layers, CheckCircle2, Package,
-  AlertCircle, ExternalLink, Monitor
+  AlertCircle, ExternalLink, Monitor, BookOpen
 } from "lucide-react";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/api";
@@ -38,6 +38,7 @@ export default function ExportScreen() {
   const [summary, setSummary] = useState<ProjectSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingDocs, setIsDownloadingDocs] = useState(false);
   const [includeO3DE, setIncludeO3DE] = useState(false);
   const [appName, setAppName] = useState("");
 
@@ -97,6 +98,31 @@ export default function ExportScreen() {
       toast.error(error.message || "Failed to download files.");
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleDownloadDocs = async () => {
+    setIsDownloadingDocs(true);
+    try {
+      const response = await apiClient.get(`/export/${projectId}/documents`, {
+        responseType: "blob",
+      });
+      const contentDisposition = response.headers["content-disposition"] || "";
+      const filenameMatch = contentDisposition.match(/filename\s*=\s*"?([^";]+)"?/i);
+      const downloadName = filenameMatch?.[1] || "documentation.zip";
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", downloadName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Documentation bundle downloaded 🐯");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to download documentation.");
+    } finally {
+      setIsDownloadingDocs(false);
     }
   };
 
@@ -356,8 +382,22 @@ export default function ExportScreen() {
                 Download Project ZIP
               </button>
               <button
-                onClick={handleFinish}
+                onClick={handleDownloadDocs}
+                disabled={isDownloadingDocs}
                 className="py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text-primary)] font-semibold text-sm hover:bg-[var(--color-surface)] transition-colors flex items-center justify-center gap-2"
+              >
+                {isDownloadingDocs ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <BookOpen className="w-4 h-4" />
+                )}
+                Export Documentation
+              </button>
+            </div>
+            <div className="mt-3">
+              <button
+                onClick={handleFinish}
+                className="w-full py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text-primary)] font-semibold text-sm hover:bg-[var(--color-surface)] transition-colors flex items-center justify-center gap-2"
               >
                 <PartyPopper className="w-4 h-4" />
                 Finish & Return Home

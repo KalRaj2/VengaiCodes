@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Layers, Database, Webhook, Package,
-  Loader2, ThumbsUp
+  Loader2, ThumbsUp, BookOpen
 } from "lucide-react";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/api";
@@ -52,6 +52,7 @@ export default function ArchitectureScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
+  const [isDownloadingDocs, setIsDownloadingDocs] = useState(false);
 
   useEffect(() => {
     loadOrGenerate();
@@ -81,6 +82,31 @@ export default function ArchitectureScreen() {
       navigate(`/project/${projectId}/uiux`);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleDownloadDocs = async () => {
+    setIsDownloadingDocs(true);
+    try {
+      const response = await apiClient.get(`/export/${projectId}/documents`, {
+        responseType: "blob",
+      });
+      const contentDisposition = response.headers["content-disposition"] || "";
+      const filenameMatch = contentDisposition.match(/filename\s*=\s*"?([^";]+)"?/i);
+      const downloadName = filenameMatch?.[1] || "documentation.zip";
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", downloadName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Documentation bundle downloaded 🐯");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to download documentation.");
+    } finally {
+      setIsDownloadingDocs(false);
     }
   };
 
@@ -254,18 +280,32 @@ export default function ArchitectureScreen() {
           <p className="text-xs text-[var(--color-text-tertiary)]">
             Review the architecture above. Once approved, Baby Tiger starts building 🚀
           </p>
-          <button
-            onClick={handleApprove}
-            disabled={isApproving}
-            className="px-6 py-3 rounded-xl bg-[var(--color-primary)] text-white font-semibold text-sm hover:bg-[var(--color-primary-hover)] transition-colors disabled:opacity-60 flex items-center gap-2 flex-shrink-0"
-          >
-            {isApproving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <ThumbsUp className="w-4 h-4" />
-            )}
-            Approve & Continue
-          </button>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              onClick={handleDownloadDocs}
+              disabled={isDownloadingDocs}
+              className="px-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] font-medium text-sm hover:bg-[var(--color-surface-raised)] transition-colors disabled:opacity-60 flex items-center gap-2"
+            >
+              {isDownloadingDocs ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <BookOpen className="w-4 h-4" />
+              )}
+              Export Docs
+            </button>
+            <button
+              onClick={handleApprove}
+              disabled={isApproving}
+              className="px-6 py-3 rounded-xl bg-[var(--color-primary)] text-white font-semibold text-sm hover:bg-[var(--color-primary-hover)] transition-colors disabled:opacity-60 flex items-center gap-2"
+            >
+              {isApproving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <ThumbsUp className="w-4 h-4" />
+              )}
+              Approve & Continue
+            </button>
+          </div>
         </div>
       </div>
     </div>

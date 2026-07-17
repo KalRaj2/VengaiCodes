@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft, FileCode2, ChevronRight, Loader2, ThumbsUp, FolderTree, Download
+  ArrowLeft, FileCode2, ChevronRight, Loader2, ThumbsUp, FolderTree, Download, BookOpen
 } from "lucide-react";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/api";
@@ -39,6 +39,7 @@ export default function CodeGenScreen() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingDocs, setIsDownloadingDocs] = useState(false);
 
   useEffect(() => {
     loadOrGenerate();
@@ -92,6 +93,31 @@ export default function CodeGenScreen() {
       toast.error(error.message || "Failed to download files.");
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleDownloadDocs = async () => {
+    setIsDownloadingDocs(true);
+    try {
+      const response = await apiClient.get(`/export/${projectId}/documents`, {
+        responseType: "blob",
+      });
+      const contentDisposition = response.headers["content-disposition"] || "";
+      const filenameMatch = contentDisposition.match(/filename\s*=\s*"?([^";]+)"?/i);
+      const downloadName = filenameMatch?.[1] || "documentation.zip";
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", downloadName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Documentation bundle downloaded 🐯");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to download documentation.");
+    } finally {
+      setIsDownloadingDocs(false);
     }
   };
 
@@ -236,6 +262,18 @@ export default function CodeGenScreen() {
             This is a starter skeleton — review the structure, then continue to Testing 🧪
           </p>
           <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              onClick={handleDownloadDocs}
+              disabled={isDownloadingDocs}
+              className="px-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] font-medium text-sm hover:bg-[var(--color-surface-raised)] transition-colors disabled:opacity-60 flex items-center gap-2"
+            >
+              {isDownloadingDocs ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <BookOpen className="w-4 h-4" />
+              )}
+              Export Docs
+            </button>
             <button
               onClick={handleDownload}
               disabled={isDownloading}
